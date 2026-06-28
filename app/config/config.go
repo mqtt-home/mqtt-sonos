@@ -35,6 +35,11 @@ type SonosConfig struct {
 	// DiscoveryPrefix is the Home Assistant discovery topic prefix. Defaults to
 	// "homeassistant".
 	DiscoveryPrefix string `json:"discovery_prefix,omitempty"`
+	// PollingInterval is how often (seconds) the bridge re-polls each speaker as
+	// a fallback to GENA events, keeping state correct even when an event
+	// callback is missed or the listener host is unreachable. Defaults to 30.
+	// Set to a negative value to disable polling entirely.
+	PollingInterval int `json:"polling_interval,omitempty"`
 	// FriendlyNames controls the identifier used in distinct status sub-topics:
 	// "name" (cleaned room name) or "uuid". Defaults to "name". The main state,
 	// control and discovery topics always use the UUID, matching sonos2mqtt.
@@ -86,6 +91,13 @@ func LoadConfig(file string) (Config, error) {
 
 	if cfg.Sonos.ListenerPort == 0 {
 		cfg.Sonos.ListenerPort = 6329
+	}
+
+	switch {
+	case cfg.Sonos.PollingInterval == 0:
+		cfg.Sonos.PollingInterval = 30
+	case cfg.Sonos.PollingInterval < 0:
+		cfg.Sonos.PollingInterval = 0 // explicitly disabled
 	}
 
 	if cfg.Sonos.DiscoveryPrefix == "" {

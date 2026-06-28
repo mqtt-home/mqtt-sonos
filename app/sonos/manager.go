@@ -26,6 +26,8 @@ type Manager struct {
 
 	debounceMu sync.Mutex
 	debounce   map[string]*time.Timer
+
+	stopPoll chan struct{}
 }
 
 func NewManager(cfg config.SonosConfig, seed string) *Manager {
@@ -83,12 +85,40 @@ func (m *Manager) Start() error {
 		m.pollDevice(d)
 	}
 
+	// Periodic poll as a fallback to GENA events (missed callbacks, unreachable
+	// listener host). Events remain the primary, near-instant path.
+	if interval := m.cfg.PollingInterval; interval > 0 {
+		m.stopPoll = make(chan struct{})
+		go m.pollLoop(time.Duration(interval) * time.Second)
+		logger.Info("State polling enabled", "interval", interval)
+	}
+
 	return nil
 }
 
 func (m *Manager) Stop() {
+	if m.stopPoll != nil {
+		close(m.stopPoll)
+		m.stopPoll = nil
+	}
 	if m.listener != nil {
 		m.listener.Stop()
+	}
+}
+
+// pollLoop periodically re-polls every device.
+func (m *Manager) pollLoop(interval time.Duration) {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-m.stopPoll:
+			return
+		case <-ticker.C:
+			for _, d := range m.Devices() {
+				m.pollDevice(d)
+			}
+		}
 	}
 }
 
