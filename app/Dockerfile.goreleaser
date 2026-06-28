@@ -1,0 +1,10 @@
+FROM gcr.io/distroless/static:nonroot
+
+WORKDIR /
+
+COPY mqtt-sonos /mqtt-sonos
+COPY web/dist /web/dist
+
+USER nonroot:nonroot
+
+ENTRYPOINT ["/mqtt-sonos", "/var/lib/mqtt-sonos/config.json"]

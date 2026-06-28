@@ -1,0 +1,20 @@
+{
+  "mqtt": {
+    "url": "tcp://localhost:1883",
+    "topic": "sonos",
+    "qos": 0,
+    "retain": true
+  },
+  "sonos": {
+    "device": "192.168.1.50",
+    "listener_host": "192.168.1.100",
+    "listener_port": 6329,
+    "discovery": true,
+    "discovery_prefix": "homeassistant"
+  },
+  "web": {
+    "enabled": true,
+    "port": 8080
+  },
+  "loglevel": "info"
+}
