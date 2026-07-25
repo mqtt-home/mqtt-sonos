@@ -152,6 +152,12 @@ commands are automatically routed to the group coordinator.
 Not implemented: `notify`, `notifytwo`, `speak`, `speaktwo` — these need a TTS
 endpoint and queue save/restore.
 
+`setavtransporturi` and `queue` accept the sonos2mqtt shorthand URIs and expand
+them to the real Sonos URI plus its DIDL-Lite metadata: `radio:s24896` (TuneIn)
+and `spotify:track|album|playlist|user|artistRadio|artistTopTracks:<id>`. Apple
+Music and Deezer shorthands are not translated. Any other URI is passed to the
+speaker unchanged.
+
 #### Advanced commands
 
 `adv-command` calls any UPnP action on a speaker directly, for anything the

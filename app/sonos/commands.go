@@ -92,7 +92,8 @@ func (m *Manager) Command(d *Device, command string, input json.RawMessage) erro
 	case "switchtotv":
 		return coord.SwitchToTV()
 	case "setavtransporturi":
-		return coord.SetAVTransportURI(asString(input), "")
+		uri, metadata := GuessTrackURI(asString(input))
+		return coord.SetAVTransportURI(uri, metadata)
 	case "queue":
 		return m.queue(coord, input)
 
@@ -244,7 +245,8 @@ func joinPlayMode(shuffle bool, repeat string) string {
 func (m *Manager) queue(coord *Device, input json.RawMessage) error {
 	// Accept either a bare URI string or an object {trackUri, positionInQueue, enqueueAsNext}.
 	if uri := asString(input); uri != "" {
-		return coord.AddURIToQueue(uri, "", false, 0)
+		trackURI, metadata := GuessTrackURI(uri)
+		return coord.AddURIToQueue(trackURI, metadata, false, 0)
 	}
 	var obj struct {
 		TrackURI        string `json:"trackUri"`
@@ -254,7 +256,8 @@ func (m *Manager) queue(coord *Device, input json.RawMessage) error {
 	if err := json.Unmarshal(input, &obj); err != nil || obj.TrackURI == "" {
 		return fmt.Errorf("queue requires a trackUri")
 	}
-	return coord.AddURIToQueue(obj.TrackURI, "", obj.EnqueueAsNext, obj.PositionInQueue)
+	trackURI, metadata := GuessTrackURI(obj.TrackURI)
+	return coord.AddURIToQueue(trackURI, metadata, obj.EnqueueAsNext, obj.PositionInQueue)
 }
 
 // PauseAll pauses every group coordinator.
