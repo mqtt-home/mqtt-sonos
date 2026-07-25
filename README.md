@@ -141,11 +141,62 @@ sonos/cmd/pauseall
 ```
 
 Supported commands: `play`, `pause`, `stop`, `toggle`, `next`, `previous`,
-`seek`, `selecttrack`, `playmode`, `queue`, `clearqueue`, `switchtoqueue`,
-`switchtoline`, `switchtotv`, `setavtransporturi`, `volume`, `volumeup`,
-`volumedown`, `mute`, `unmute`, `setbass`, `settreble`, `joingroup`,
-`leavegroup`, `setledstate`. Transport commands are automatically routed to the
-group coordinator.
+`seek`, `selecttrack`, `playmode`, `shuffle`, `repeat`, `crossfade`, `queue`,
+`clearqueue`, `switchtoqueue`, `switchtoline`, `switchtotv`,
+`setavtransporturi`, `volume`, `volumeup`, `volumedown`, `groupvolume`,
+`groupvolumeup`, `groupvolumedown`, `mute`, `unmute`, `setbass`, `settreble`,
+`sleep`, `snooze`, `joingroup`, `leavegroup`, `setledstate`,
+`setbuttonlockstate`, `setnightmode`, `command`, `adv-command`. Transport
+commands are automatically routed to the group coordinator.
+
+Not implemented: `notify`, `notifytwo`, `speak`, `speaktwo` — these need a TTS
+endpoint and queue save/restore.
+
+#### Advanced commands
+
+`adv-command` calls any UPnP action on a speaker directly, for anything the
+named commands don't cover:
+
+```json
+{
+  "command": "adv-command",
+  "input": {
+    "cmd": "RenderingControlService.SetVolume",
+    "val": { "InstanceID": 0, "Channel": "Master", "DesiredVolume": 40 }
+  }
+}
+```
+
+`cmd` is `<Service>.<Action>`; every service the speaker exposes is reachable
+(`AVTransport`, `RenderingControl`, `GroupRenderingControl`, `DeviceProperties`,
+`ZoneGroupTopology`, `ContentDirectory`, `AlarmClock`, `MusicServices`,
+`SystemProperties`, `Queue`, `GroupManagement`, `HTControl`, `VirtualLineIn`,
+`AudioIn`, `ConnectionManager`, `QPlay`). The `Service` suffix is optional.
+`val` holds the action's arguments — names are case sensitive, and their order
+is preserved because UPnP is order-sensitive.
+
+Add a `reply` name to have the action's response published to
+`sonos/<uuid>/<reply>`:
+
+```json
+{
+  "command": "adv-command",
+  "input": {
+    "cmd": "RenderingControlService.GetVolume",
+    "val": { "InstanceID": 0, "Channel": "Master" },
+    "reply": "GetVolumeResponse"
+  }
+}
+```
+
+```
+sonos/<uuid>/GetVolumeResponse   { "CurrentVolume": 40 }
+```
+
+The same passthrough is available as the `sonosCommand` control field
+(`{ "sonosCommand": "AVTransportService.Play", "input": { "InstanceID": 0, "Speed": "1" } }`),
+and `command` wraps another command
+(`{ "command": "command", "input": { "cmd": "volume", "val": 30 } }`).
 
 ## Web UI
 

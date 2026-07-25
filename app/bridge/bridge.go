@@ -47,6 +47,7 @@ func (b *Bridge) Start() error {
 	mqtt.Start(b.cfg.MQTT, "mqtt_sonos")
 
 	b.mgr.SetStateChangeCallback(b.onState)
+	b.mgr.SetReplyCallback(b.publishReply)
 
 	if err := b.mgr.Start(); err != nil {
 		return err
@@ -89,6 +90,17 @@ func (b *Bridge) publishState(uuid string, state *sonos.State) {
 		return
 	}
 	mqtt.PublishAbsolute(b.topic()+"/"+uuid, string(data), true)
+}
+
+// publishReply publishes the result of a command that asked for one, on
+// `<prefix>/<uuid>/<reply>` (adv-command's `reply` option).
+func (b *Bridge) publishReply(uuid, reply string, result map[string]any) {
+	data, err := json.Marshal(result)
+	if err != nil {
+		logger.Error("Failed to marshal command reply", "error", err)
+		return
+	}
+	mqtt.PublishAbsolute(b.topic()+"/"+uuid+"/"+reply, string(data), false)
 }
 
 func (b *Bridge) publishConnected(value string) {
@@ -141,10 +153,28 @@ func (b *Bridge) handleControl(id string, payload []byte) {
 		command = p.Cmd
 	}
 	if command == "" {
+		// `sonosCommand` addresses a UPnP service action directly.
+		if p.SonosCommand != "" {
+			b.dispatchRaw(id, p.SonosCommand, p.Input)
+			return
+		}
 		logger.Warn("Control message without command", "id", id)
 		return
 	}
 	b.dispatch(id, command, p.Input)
+}
+
+func (b *Bridge) dispatchRaw(id, sonosCommand string, input json.RawMessage) {
+	d := b.mgr.Resolve(id)
+	if d == nil {
+		logger.Warn("Command for unknown device", "id", id, "command", sonosCommand)
+		return
+	}
+	logger.Debug("Executing sonos command", "device", d.Name, "command", sonosCommand)
+	if err := b.mgr.SonosCommand(d, sonosCommand, input); err != nil {
+		logger.Error("Command failed", "device", d.Name, "command", sonosCommand, "error", err)
+		mqtt.PublishAbsolute(b.topic()+"/"+d.UUID+"/error", err.Error(), false)
+	}
 }
 
 func (b *Bridge) dispatch(id, command string, input json.RawMessage) {

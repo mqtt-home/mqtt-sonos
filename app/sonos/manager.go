@@ -23,6 +23,7 @@ type Manager struct {
 	coordinatorOf map[string]string // member uuid -> coordinator uuid
 
 	onStateChange func(uuid string, state *State)
+	onReply       func(uuid, reply string, result map[string]any)
 
 	debounceMu sync.Mutex
 	debounce   map[string]*time.Timer
@@ -45,6 +46,12 @@ func NewManager(cfg config.SonosConfig, seed string) *Manager {
 // device's published state changes.
 func (m *Manager) SetStateChangeCallback(cb func(uuid string, state *State)) {
 	m.onStateChange = cb
+}
+
+// SetReplyCallback registers a callback invoked when a command asks for its
+// result to be published (adv-command's `reply` option).
+func (m *Manager) SetReplyCallback(cb func(uuid, reply string, result map[string]any)) {
+	m.onReply = cb
 }
 
 // Start discovers the household, begins listening for events, subscribes every

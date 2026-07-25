@@ -114,6 +114,28 @@ func (d *Device) SwitchToTV() error {
 	return d.SetAVTransportURI("x-sonos-htastream:"+d.UUID+":spdif", "")
 }
 
+func (d *Device) SetCrossfadeMode(on bool) error {
+	_, err := soapCall(d.baseURL(), avTransport, "SetCrossfadeMode",
+		soapArg{"InstanceID", "0"}, soapArg{"CrossfadeMode", boolArg(on)})
+	return err
+}
+
+// ConfigureSleepTimer sets the sleep timer to a hh:mm:ss duration. An empty
+// duration turns the timer off.
+func (d *Device) ConfigureSleepTimer(duration string) error {
+	_, err := soapCall(d.baseURL(), avTransport, "ConfigureSleepTimer",
+		soapArg{"InstanceID", "0"}, soapArg{"NewSleepTimerDuration", duration})
+	return err
+}
+
+// SnoozeAlarm snoozes a currently ringing alarm for a hh:mm:ss duration. An
+// empty duration cancels the snooze.
+func (d *Device) SnoozeAlarm(duration string) error {
+	_, err := soapCall(d.baseURL(), avTransport, "SnoozeAlarm",
+		soapArg{"InstanceID", "0"}, soapArg{"Duration", duration})
+	return err
+}
+
 func (d *Device) GetTransportInfo() (string, error) {
 	body, err := soapCall(d.baseURL(), avTransport, "GetTransportInfo", soapArg{"InstanceID", "0"})
 	if err != nil {
@@ -160,14 +182,8 @@ func (d *Device) GetVolume() (int, error) {
 }
 
 func (d *Device) SetVolume(volume int) error {
-	if volume < 0 {
-		volume = 0
-	}
-	if volume > 100 {
-		volume = 100
-	}
 	_, err := soapCall(d.baseURL(), renderingControl, "SetVolume",
-		soapArg{"InstanceID", "0"}, soapArg{"Channel", "Master"}, soapArg{"DesiredVolume", strconv.Itoa(volume)})
+		soapArg{"InstanceID", "0"}, soapArg{"Channel", "Master"}, soapArg{"DesiredVolume", strconv.Itoa(clampVolume(volume))})
 	return err
 }
 
@@ -208,6 +224,29 @@ func (d *Device) SetTreble(treble int) error {
 	return err
 }
 
+// SetNightMode toggles the speaker's night sound EQ (home theatre models).
+func (d *Device) SetNightMode(on bool) error {
+	_, err := soapCall(d.baseURL(), renderingControl, "SetEQ",
+		soapArg{"InstanceID", "0"}, soapArg{"EQType", "NightMode"}, soapArg{"DesiredValue", boolArg(on)})
+	return err
+}
+
+// --- GroupRenderingControl ---
+
+// SetGroupVolume sets the volume of the whole group. Must be called on the
+// group coordinator.
+func (d *Device) SetGroupVolume(volume int) error {
+	_, err := soapCall(d.baseURL(), groupRenderingControl, "SetGroupVolume",
+		soapArg{"InstanceID", "0"}, soapArg{"DesiredVolume", strconv.Itoa(clampVolume(volume))})
+	return err
+}
+
+func (d *Device) SetRelativeGroupVolume(delta int) error {
+	_, err := soapCall(d.baseURL(), groupRenderingControl, "SetRelativeGroupVolume",
+		soapArg{"InstanceID", "0"}, soapArg{"Adjustment", strconv.Itoa(delta)})
+	return err
+}
+
 // --- DeviceProperties ---
 
 func (d *Device) SetLEDState(on bool) error {
@@ -217,4 +256,32 @@ func (d *Device) SetLEDState(on bool) error {
 	}
 	_, err := soapCall(d.baseURL(), deviceProperties, "SetLEDState", soapArg{"DesiredLEDState", v})
 	return err
+}
+
+// SetButtonLockState locks or unlocks the physical buttons on the speaker.
+func (d *Device) SetButtonLockState(locked bool) error {
+	v := "Off"
+	if locked {
+		v = "On"
+	}
+	_, err := soapCall(d.baseURL(), deviceProperties, "SetButtonLockState",
+		soapArg{"DesiredButtonLockState", v})
+	return err
+}
+
+func boolArg(v bool) string {
+	if v {
+		return "1"
+	}
+	return "0"
+}
+
+func clampVolume(volume int) int {
+	if volume < 0 {
+		return 0
+	}
+	if volume > 100 {
+		return 100
+	}
+	return volume
 }

@@ -11,10 +11,13 @@ import (
 // availableCommands mirrors the command set advertised by sonos2mqtt's Home
 // Assistant discovery payload.
 var availableCommands = []string{
-	"clearqueue", "joingroup", "leavegroup", "mute", "next", "pause", "play",
-	"playmode", "previous", "queue", "seek", "selecttrack", "setavtransporturi",
-	"setbass", "setledstate", "settreble", "stop", "switchtoline", "switchtoqueue",
-	"switchtotv", "toggle", "unmute", "volume", "volumedown", "volumeup",
+	"adv-command", "clearqueue", "command", "crossfade", "groupvolume",
+	"groupvolumedown", "groupvolumeup", "joingroup", "leavegroup", "mute", "next",
+	"pause", "play", "playmode", "previous", "queue", "repeat", "seek",
+	"selecttrack", "setavtransporturi", "setbass", "setbuttonlockstate",
+	"setledstate", "setnightmode", "settreble", "shuffle", "sleep", "snooze",
+	"stop", "switchtoline", "switchtoqueue", "switchtotv", "toggle", "unmute",
+	"volume", "volumedown", "volumeup",
 }
 
 // publishDiscovery emits a retained Home Assistant MQTT discovery message for a
